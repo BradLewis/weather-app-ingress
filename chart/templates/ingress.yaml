@@ -7,7 +7,7 @@ spec:
   rules:
   - http:
       paths:
-      - path: /api/*
+      - path: /*
         backend:
           serviceName: weather-api-production-service
           servicePort: {{ .Values.ingress.port }}
