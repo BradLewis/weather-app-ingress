@@ -1,0 +1,31 @@
+services:
+  - docker
+cache:
+  directories:
+    - "$HOME/google-cloud-sdk/"
+env:
+  global:
+    - GCP_PROJECT_ID=weather-286421
+    - export CLOUDSDK_CORE_DISABLE_PROMPTS=1;
+    - CLUSTER=weather-application
+    - REGION=northamerica-northeast1
+before_install:
+  - openssl aes-256-cbc -K $encrypted_98d237b7dbf4_key -iv $encrypted_98d237b7dbf4_iv -in google-key.json.enc -out google-key.json -d
+  - if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf "$HOME/google-cloud-sdk"; curl https://sdk.cloud.google.com | bash > /dev/null; fi
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  - gcloud auth activate-service-account --key-file=google-key.json
+  - gcloud auth configure-docker
+  - gcloud config set project "${GCP_PROJECT_ID}"
+  - gcloud components install kubectl
+install: true
+jobs:
+  include:
+    - stage: update ingress
+      script:
+        - gcloud container clusters get-credentials ${CLUSTER} --region ${REGION} --project ${GCP_PROJECT_ID}
+        - kubectl config set-cluster ${CLUSTER}
+        - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+        - helm upgrade --install weather-app-ingress chart
+stages:
+  - name: update ingress
+    if: branch = master
